@@ -13,26 +13,35 @@ const QuestionSchema = z.object({
 });
 
 /**
- * Safely parse an admin-pasted JavaScript snippet of the form:
- * var questions = [ { q: "...", options: ["A","B","C","D"], correct: 0 }, ... ];
- * Returns a validated array; throws on invalid input.
+ * Safe parser for admin-pasted question arrays.
+ * Input format:
+ *   var questions = [
+ *     { q: "Question?", options: ["A","B","C","D"], correct: 0 },
+ *     ...
+ *   ];
+ *
+ * Security considerations:
+ * - Never uses eval.
+ * - Normalizes object keys to quoted JSON and single quotes to double quotes.
+ * - Validates each entry strictly with zod.
  */
 export function parseQuestionsFromJS(code: string): ParsedQuestion[] {
-  // Find top-level variable declaration named 'questions'
-  let arraySrc = '';
-  const src = code;
-  // Use regex as a fallback for extracting array literal
+  const src = code.trim();
   const re = /var\s+questions\s*=\s*(\[[\s\S]*\]);?/m;
   const m = src.match(re);
   if (!m) {
     throw new Error('Could not find a var questions = [...] declaration');
   }
-  arraySrc = m[1];
+  const arraySrc = m[1];
 
-  // Convert JS object keys to quoted for JSON parsing, e.g., { q: "..." } -> { "q": "..." }
+  // Normalize to JSON-like string:
+  // - Quote known keys
+  // - Convert single quotes to double quotes
+  // - Remove trailing commas in objects/arrays
   const jsonLike = arraySrc
     .replace(/([\{\,\s])(q|options|correct)\s*:/g, '$1"$2":')
-    .replace(/'([^']*)'/g, '"$1"');
+    .replace(/'([^']*)'/g, '"$1"')
+    .replace(/,\s*([\]\}])/g, '$1');
 
   let parsed: unknown;
   try {

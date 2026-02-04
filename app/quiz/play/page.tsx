@@ -8,17 +8,16 @@ import { calculateScore } from '@/lib/score';
 import { useQuizTimer } from '@/hooks/useQuizTimer';
 import QuizHeader from '@/components/quiz/QuizHeader';
 import QuestionCard from '@/components/quiz/QuestionCard';
-import QuizNavigation from '@/components/quiz/QuizNavigation';
+// Removed per serial layout: no next/prev navigation
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 export default function QuizPlayPage() {
   const router = useRouter();
   const {
-    currentQuestionIndex,
     answers,
     submitted,
-    setCurrentQuestion,
     setAnswer,
     setSubmitted,
     resetQuiz,
@@ -43,26 +42,11 @@ export default function QuizPlayPage() {
 
   const timeLeft = useQuizTimer(handleTimeUp);
 
-  const handlePrev = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestion(currentQuestionIndex - 1);
-    }
+  const handleSelectAnswer = (questionIndex: number, answerIndex: number) => {
+    setAnswer(questionIndex, answerIndex);
   };
 
-  const handleNext = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestion(currentQuestionIndex + 1);
-    }
-  };
-
-  const handleSelectAnswer = (answerIndex: number) => {
-    setAnswer(currentQuestionIndex, answerIndex);
-  };
-
-  const currentQuestion = questions[currentQuestionIndex];
-  const currentAnswer = answers[currentQuestionIndex];
-
-  if (!currentQuestion) {
+  if (!questions.length) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Loading...</p>
@@ -74,7 +58,7 @@ export default function QuizPlayPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-4">
       <div className="max-w-4xl mx-auto py-8 space-y-6">
         <QuizHeader
-          currentQuestion={currentQuestionIndex}
+          answeredCount={answers.filter((a: number | null) => a !== null).length}
           totalQuestions={questions.length}
           timeLeft={timeLeft}
         />
@@ -88,58 +72,28 @@ export default function QuizPlayPage() {
           </Alert>
         )}
 
-        <QuestionCard
-          question={currentQuestion}
-          selectedAnswer={currentAnswer}
-          onSelectAnswer={handleSelectAnswer}
-        />
-
-        <QuizNavigation
-          currentQuestion={currentQuestionIndex}
-          totalQuestions={questions.length}
-          onPrev={handlePrev}
-          onNext={handleNext}
-          onSubmit={handleSubmit}
-          canSubmit={answers.every((a: number | null) => a !== null)}
-        />
-
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
-          <p className="text-sm font-semibold mb-3">প্রশ্ন স্ট্যাটাস:</p>
-          <div className="grid grid-cols-10 gap-2">
-            {questions.map((q, index: number) => (
-              <button
-                key={index}
-                onClick={() => setCurrentQuestion(index)}
-                className={`
-                  w-10 h-10 rounded-md text-sm font-semibold
-                  ${
-                    index === currentQuestionIndex
-                      ? 'bg-blue-600 text-white'
-                      : answers[index] !== null
-                      ? 'bg-green-500 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700'
-                  }
-                `}
-              >
-                {index + 1}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-4 mt-4 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-blue-600 rounded"></div>
-              <span>বর্তমান</span>
+        {/* Serial list of questions */}
+        <div className="space-y-6">
+          {questions.map((q, index: number) => (
+            <div key={index} className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
+              <p className="text-sm font-semibold mb-2">Question {index + 1}</p>
+              <QuestionCard
+                question={q}
+                selectedAnswer={answers[index]}
+                onSelectAnswer={(ansIdx) => handleSelectAnswer(index, ansIdx)}
+              />
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-green-500 rounded"></div>
-              <span>উত্তর দেওয়া</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-              <span>বাকি</span>
-            </div>
-          </div>
+          ))}
         </div>
+
+        {/* Submit button */}
+        <div className="flex justify-end pt-4">
+          <Button onClick={handleSubmit} disabled={answers.every((a: number | null) => a === null)}>
+            Submit
+          </Button>
+        </div>
+
+        {/* Removed status grid in favor of serial layout */}
       </div>
     </div>
   );

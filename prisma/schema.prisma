@@ -12,6 +12,9 @@ datasource db {
 
 model ExamSettings {
   id               Int      @id @default(1)
+  examName         String?  @db.VarChar(100)
+  subjectName      String?  @db.VarChar(100)
+  chapterName      String?  @db.VarChar(150)
   totalTimeMinutes Int      @default(60)
   marksPerCorrect  Float    @default(4)
   negativePerWrong Float    @default(-1)

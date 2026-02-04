@@ -2,23 +2,9 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, Clock, Award, CheckCircle } from 'lucide-react';
-import { prisma } from '@/lib/db';
+import { questions, QUIZ_CONFIG } from '@/lib/questions';
 
-export default async function Home() {
-  let settings: { totalTimeMinutes: number; marksPerCorrect: number; negativePerWrong: number; isActive: boolean } | null = null;
-  let totalQuestions = 0;
-  try {
-    settings = await prisma.examSettings.findUnique({ where: { id: 1 } });
-    totalQuestions = await prisma.question.count();
-  } catch {
-    // DB not configured; fall back to defaults
-  }
-  const timeMinutes = settings?.totalTimeMinutes ?? 60;
-  const passPercentage = 50; // display-only; pass logic handled on result
-  const correctPoints = settings?.marksPerCorrect ?? 4;
-  const wrongPoints = settings?.negativePerWrong ?? -1;
-  const unattemptedPoints = 0;
-  const isActive = settings?.isActive ?? false;
+export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-4">
       <div className="max-w-4xl mx-auto py-12 space-y-8">
@@ -44,15 +30,17 @@ export default async function Home() {
             <CardContent className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-600">মোট প্রশ্ন:</span>
-                <span className="font-semibold">{totalQuestions}টি</span>
+                <span className="font-semibold">{questions.length}টি</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">সময়:</span>
-                <span className="font-semibold">{timeMinutes} মিনিট</span>
+                <span className="font-semibold">
+                  {QUIZ_CONFIG.totalTime / 60} মিনিট
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">পাসের নম্বর:</span>
-                <span className="font-semibold">{passPercentage}%</span>
+                <span className="font-semibold">{QUIZ_CONFIG.passPercentage}%</span>
               </div>
             </CardContent>
           </Card>
@@ -67,15 +55,21 @@ export default async function Home() {
             <CardContent className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-600">সঠিক উত্তর:</span>
-                <span className="font-semibold text-green-600">+{correctPoints}</span>
+                <span className="font-semibold text-green-600">
+                  +{QUIZ_CONFIG.correctPoints}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">ভুল উত্তর:</span>
-                <span className="font-semibold text-red-600">{wrongPoints}</span>
+                <span className="font-semibold text-red-600">
+                  {QUIZ_CONFIG.wrongPoints}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">উত্তর না দিলে:</span>
-                <span className="font-semibold text-gray-600">{unattemptedPoints}</span>
+                <span className="font-semibold text-gray-600">
+                  {QUIZ_CONFIG.unattemptedPoints}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -111,22 +105,13 @@ export default async function Home() {
           </CardContent>
         </Card>
 
-        {/* Actions */}
-        <div className="flex items-center justify-center gap-4">
-          {isActive ? (
-            <Link href="/enter">
-              <Button size="lg" className="text-lg px-12 py-6">
-                <Clock className="w-5 h-5 mr-2" />
-                পরীক্ষা শুরু করুন
-              </Button>
-            </Link>
-          ) : (
-            <Button size="lg" disabled className="text-lg px-12 py-6 opacity-70">
-              পরীক্ষা বর্তমানে সক্রিয় নয়
+        {/* Start Button */}
+        <div className="text-center">
+          <Link href="/quiz/play">
+            <Button size="lg" className="text-lg px-12 py-6">
+              <Clock className="w-5 h-5 mr-2" />
+              পরীক্ষা শুরু করুন
             </Button>
-          )}
-          <Link href="/admin/login">
-            <Button variant="outline" size="lg" className="text-lg px-8 py-6">এডমিন</Button>
           </Link>
         </div>
       </div>

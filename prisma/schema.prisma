@@ -1,0 +1,42 @@
+// Prisma schema for MCQ Exam Platform
+// Datasource: PostgreSQL (set DATABASE_URL in .env)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ExamSettings {
+  id               Int      @id @default(1)
+  totalTimeMinutes Int      @default(60)
+  marksPerCorrect  Float    @default(4)
+  negativePerWrong Float    @default(-1)
+  isActive         Boolean  @default(false)
+  totalQuestions   Int      @default(0)
+  updatedAt        DateTime @updatedAt
+}
+
+model Question {
+  id           Int    @id @default(autoincrement())
+  questionText String
+  option1      String
+  option2      String
+  option3      String
+  option4      String
+  correctIndex Int    // 0 to 3
+}
+
+model StudentAttempt {
+  id          String   @id @default(uuid())
+  name        String
+  phone       String
+  startedAt   DateTime @default(now())
+  submittedAt DateTime?
+  answers     Json?
+  score       Float?
+  status      String   @default("ongoing") // ongoing, submitted, expired
+}

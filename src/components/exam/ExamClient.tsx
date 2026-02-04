@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import QuizHeader from "@/components/quiz/QuizHeader";
 import QuestionCard from "@/components/quiz/QuestionCard";
 import FloatingSubmitButton from "./FloatingSubmitButton";
+import FloatingHeader from "./FloatingHeader";
+import UnansweredQuestionsTracker from "./UnansweredQuestionsTracker";
 // Removed per serial layout: no next/prev navigation
 import { Question } from "@/lib/types";
 import { submitExamAction } from "@/actions/submitExam";
@@ -78,27 +80,84 @@ export default function ExamClient({ deadlineEpoch, questions }: { deadlineEpoch
     });
   };
 
+  // Scroll to specific question
+  const scrollToQuestion = (questionIndex: number) => {
+    const questionElement = document.getElementById(`question-${questionIndex}`);
+    if (questionElement) {
+      questionElement.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+      // Add highlight effect
+      questionElement.classList.add('ring-2', 'ring-red-500', 'ring-opacity-50');
+      setTimeout(() => {
+        questionElement.classList.remove('ring-2', 'ring-red-500', 'ring-opacity-50');
+      }, 2000);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-4">
-      <div className="max-w-4xl mx-auto py-8 space-y-6">
+      {/* Floating Header */}
+      <FloatingHeader 
+        timeLeft={timeLeft}
+        answeredCount={answers.filter(a => a !== null).length}
+        totalQuestions={questions.length}
+      />
+      
+      {/* Unanswered Questions Tracker */}
+      <UnansweredQuestionsTracker
+        answers={answers}
+        timeLeft={timeLeft}
+        onQuestionClick={scrollToQuestion}
+      />
+      
+      <div className="max-w-4xl mx-auto py-8 pt-20 space-y-6">
+        {/* Old QuizHeader replaced by FloatingHeader */}
+        {/* 
         <QuizHeader
           answeredCount={answers.filter((a) => a !== null).length}
           totalQuestions={questions.length}
           timeLeft={timeLeft}
         />
+        */}
 
         {/* Serial list of questions */}
         <div className="space-y-6">
-          {questions.map((q, idx) => (
-            <div key={q.id ?? idx} className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
-              <p className="text-sm font-semibold mb-2">Question {idx + 1}</p>
-              <QuestionCard
-                question={q}
-                selectedAnswer={answers[idx]}
-                onSelectAnswer={(choice) => setAnswer(idx, choice)}
-              />
-            </div>
-          ))}
+          {questions.map((q, idx) => {
+            const isAnswered = answers[idx] !== null;
+            return (
+              <div 
+                key={q.id ?? idx} 
+                id={`question-${idx}`}
+                className={`bg-white dark:bg-gray-800 p-4 rounded-lg border transition-all duration-300 ${
+                  isAnswered 
+                    ? 'border-green-200 dark:border-green-800 bg-green-50/30 dark:bg-green-900/10' 
+                    : 'border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-semibold">Question {idx + 1}</p>
+                  {isAnswered ? (
+                    <div className="flex items-center space-x-1 px-2 py-1 bg-green-100 dark:bg-green-900 rounded-full">
+                      <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
+                      <span className="text-xs text-green-600 dark:text-green-400 font-medium">Answered</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-1 px-2 py-1 bg-amber-100 dark:bg-amber-900 rounded-full">
+                      <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                      <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">Pending</span>
+                    </div>
+                  )}
+                </div>
+                <QuestionCard
+                  question={q}
+                  selectedAnswer={answers[idx]}
+                  onSelectAnswer={(choice) => setAnswer(idx, choice)}
+                />
+              </div>
+            );
+          })}
         </div>
 
         {/* Submit button - Hidden, replaced by floating button */}

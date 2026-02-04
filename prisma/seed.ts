@@ -51,12 +51,8 @@ async function main() {
   ];
 
   for (const question of sampleQuestions) {
-    await prisma.question.upsert({
-      where: { 
-        id: -1 // This will always create new since -1 doesn't exist
-      },
-      update: {},
-      create: question
+    await prisma.question.create({
+      data: question
     });
   }
 

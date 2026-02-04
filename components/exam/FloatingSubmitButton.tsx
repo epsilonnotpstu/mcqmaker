@@ -19,21 +19,12 @@ export default function FloatingSubmitButton({
   totalQuestions,
 }: FloatingSubmitButtonProps) {
   const completionPercentage = Math.round((answeredCount / totalQuestions) * 100);
-  
-  // Debug logging
-  console.log('FloatingSubmitButton render:', {
-    canSubmit,
-    isSubmitting,
-    answeredCount,
-    totalQuestions,
-    completionPercentage
-  });
 
   return (
     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-[9999]">
       <div className="relative">
         {/* Floating Card */}
-        <div className="backdrop-blur-xl bg-white/95 dark:bg-gray-900/95 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 p-4">
+        <div className="backdrop-blur-xl bg-white/95 dark:bg-gray-900/95 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 p-4".>
           <div className="flex items-center gap-4".>
             {/* Progress Info */}
             <div className="text-center">

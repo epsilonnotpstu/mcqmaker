@@ -8,7 +8,7 @@ import { Question } from "@/lib/types";
 import { submitExamAction } from "@/actions/submitExam";
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertTriangle, Lock, Timer, CheckCircle, BookOpen, Target } from 'lucide-react';
-import FloatingSubmitButton from '@/components/exam/FloatingSubmitButton';
+import FloatingSubmitButton from './FloatingSubmitButton';
 
 export default function ExamClient({ deadlineEpoch, questions }: { deadlineEpoch: number; questions: Question[] }) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);

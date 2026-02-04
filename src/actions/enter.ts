@@ -9,6 +9,7 @@ import { getSecureCookieOptions } from "@/lib/auth";
 export async function enterAction(formData: FormData) {
   const name = String(formData.get("name") || "").trim();
   const phone = String(formData.get("phone") || "").trim();
+  const examId = formData.get("examId") ? Number(formData.get("examId")) : null;
 
   if (!name || !phone) {
     return { ok: false, error: "Name and phone are required" };
@@ -17,9 +18,30 @@ export async function enterAction(formData: FormData) {
     return { ok: false, error: "Phone must be 11 digits" };
   }
 
-  const settings = await prisma.examSettings.findFirst({ where: { isActive: true }, orderBy: { updatedAt: 'desc' } });
-  if (!settings || !settings.isActive) {
-    return { ok: false, error: "No active exam at the moment" };
+  let settings;
+  if (examId) {
+    settings = await prisma.examSettings.findFirst({ 
+      where: { id: examId },
+      include: { _count: { select: { questions: true } } }
+    });
+    if (!settings) {
+      return { ok: false, error: "Selected exam not found" };
+    }
+    if (settings._count.questions === 0) {
+      return { ok: false, error: "Selected exam has no questions" };
+    }
+  } else {
+    settings = await prisma.examSettings.findFirst({ 
+      where: { isActive: true },
+      include: { _count: { select: { questions: true } } },
+      orderBy: { updatedAt: 'desc' }
+    });
+    if (!settings || !settings.isActive) {
+      return { ok: false, error: "No active exam at the moment" };
+    }
+    if (settings._count.questions === 0) {
+      return { ok: false, error: "Active exam has no questions" };
+    }
   }
 
   const attempt = await prisma.studentAttempt.create({

@@ -73,6 +73,7 @@ export async function updateExamSettingsAction(formData: FormData) {
   }
 
   if (isActive) {
+    // Ensure only one exam is active at a time
     await prisma.examSettings.updateMany({
       where: { id: { not: targetId } },
       data: { isActive: false },

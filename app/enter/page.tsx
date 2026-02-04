@@ -1,16 +1,47 @@
 
 'use client';
 
-import { useTransition, useState } from 'react';
+import { useTransition, useState, useEffect } from 'react';
 import { enterAction } from '@/actions/enter';
+
+type ExamOption = {
+  id: number;
+  examName: string | null;
+  subjectName: string | null;
+  chapterName: string | null;
+  totalTimeMinutes: number;
+  totalQuestions: number;
+  isActive: boolean;
+};
 
 export default function EnterPage() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [exams, setExams] = useState<ExamOption[]>([]);
+  const [selectedExamId, setSelectedExamId] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Fetch available exams
+    fetch('/api/exams')
+      .then(res => res.json())
+      .then(data => {
+        setExams(data.exams || []);
+        const activeExam = data.exams?.find((e: ExamOption) => e.isActive);
+        if (activeExam) {
+          setSelectedExamId(activeExam.id);
+        }
+      })
+      .catch(() => {
+        setError('Failed to load exams');
+      });
+  }, []);
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    if (selectedExamId) {
+      fd.append('examId', String(selectedExamId));
+    }
     startTransition(async () => {
       const res = await enterAction(fd);
       if (res && !res.ok) {
@@ -24,6 +55,37 @@ export default function EnterPage() {
       <div className="w-full max-w-md rounded-xl border bg-white dark:bg-gray-900 p-6 shadow">
         <h1 className="text-2xl font-bold text-center mb-6">Enter Exam</h1>
         {error && <div className="mb-4 rounded bg-red-100 text-red-700 p-3 text-sm">{error}</div>}
+        
+        {exams.length > 0 && (
+          <div className="mb-4 p-3 border rounded bg-gray-50 dark:bg-gray-800">
+            <h2 className="text-sm font-semibold mb-2">Available Exams:</h2>
+            <div className="space-y-2">
+              {exams.map((exam) => (
+                <label key={exam.id} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="examSelection"
+                    value={exam.id}
+                    checked={selectedExamId === exam.id}
+                    onChange={() => setSelectedExamId(exam.id)}
+                    className="form-radio"
+                  />
+                  <div className="text-sm">
+                    <div className="font-medium">
+                      {exam.subjectName || 'Subject'} — {exam.examName || `Exam #${exam.id}`}
+                      {exam.isActive && <span className="ml-1 text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded">Active</span>}
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      {exam.chapterName && `${exam.chapterName} · `}
+                      {exam.totalQuestions} questions · {exam.totalTimeMinutes} minutes
+                    </div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+        
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
             <label className="block text-sm mb-1" htmlFor="name">Name</label>
@@ -33,9 +95,19 @@ export default function EnterPage() {
             <label className="block text-sm mb-1" htmlFor="phone">Phone</label>
             <input id="phone" name="phone" type="tel" required className="w-full border rounded px-3 py-2" placeholder="11 digits" />
           </div>
-          <button type="submit" disabled={isPending} className="w-full rounded bg-blue-600 hover:bg-blue-700 text-white py-2 font-semibold disabled:opacity-60">
+          <button 
+            type="submit" 
+            disabled={isPending || !selectedExamId} 
+            className="w-full rounded bg-blue-600 hover:bg-blue-700 text-white py-2 font-semibold disabled:opacity-60"
+          >
             {isPending ? 'Starting…' : 'Start Exam'}
           </button>
+          {!selectedExamId && exams.length === 0 && (
+            <p className="text-sm text-gray-600 text-center">Loading exams...</p>
+          )}
+          {exams.length === 0 && !error && (
+            <p className="text-sm text-red-600 text-center">No exams available</p>
+          )}
         </form>
       </div>
     </div>

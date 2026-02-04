@@ -8,7 +8,7 @@ import Link from 'next/link';
 // Server action: upload questions
 // Moved to actions/admin/uploadQuestions.ts
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({ searchParams }: { searchParams?: Promise<{ examId?: string }> }) {
   // Gracefully handle missing DATABASE_URL / DB not ready
   const dbUrl = process.env.DATABASE_URL;
   if (!dbUrl) {
@@ -25,8 +25,16 @@ export default async function AdminDashboardPage() {
     );
   }
 
-  const settings = await prisma.examSettings.findFirst({ where: { isActive: true }, orderBy: { updatedAt: 'desc' } });
-  // If no active exam, show a call to action
+  const params = await searchParams;
+  
+  // Get all exams and let user select which one to view
+  const allExams = await prisma.examSettings.findMany({ orderBy: { updatedAt: 'desc' } });
+  const requestedExamId = params?.examId ? Number(params.examId) : undefined;
+  const settings = requestedExamId 
+    ? allExams.find((e) => e.id === requestedExamId)
+    : allExams.find((e) => e.isActive) || allExams[0];
+  
+  // If no exams at all, show a call to action
   if (!settings) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-4">
@@ -36,7 +44,7 @@ export default async function AdminDashboardPage() {
             <Link href="/admin/dashboard/newexam" className="inline-flex items-center justify-center rounded-md h-10 px-4 text-sm font-medium border border-border bg-transparent hover:bg-black/5 dark:hover:bg-white/10">Create New Exam</Link>
           </div>
           <div className="rounded-xl border bg-white dark:bg-gray-900 p-6 shadow">
-            <p className="text-gray-700">No active exam found. Create a new exam to get started, then upload questions.</p>
+            <p className="text-gray-700">No exams found. Create a new exam to get started, then upload questions.</p>
           </div>
         </div>
       </div>
@@ -80,10 +88,44 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
 
+        {/* Exam Selector */}
+        {allExams.length > 1 && (
+          <div className="rounded-xl border bg-white dark:bg-gray-900 p-6 shadow">
+            <h2 className="text-lg font-semibold mb-3">All Exams</h2>
+            <div className="space-y-2">
+              {allExams.map((exam) => (
+                <div key={exam.id} className="flex items-center justify-between p-3 border rounded hover:bg-gray-50">
+                  <div>
+                    <div className="font-medium">
+                      {exam.subjectName || 'Subject'} — {exam.examName || `Exam #${exam.id}`}
+                      {exam.isActive && <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Active</span>}
+                      {exam.id === settings.id && <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Viewing</span>}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {exam.chapterName && `${exam.chapterName} · `}
+                      Questions: {exam.totalQuestions} · Time: {exam.totalTimeMinutes}m
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {exam.id !== settings.id && (
+                      <Link href={`/admin/dashboard?examId=${exam.id}`} className="text-sm text-blue-600 hover:underline">
+                        View
+                      </Link>
+                    )}
+                    <Link href={`/admin/dashboard/addquestion?examId=${exam.id}`} className="text-sm text-green-600 hover:underline">
+                      Manage
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Subject dropdown with exam names */}
         <div className="rounded-xl border bg-white dark:bg-gray-900 p-6 shadow">
           <div className="space-y-2">
-            <div className="text-sm text-gray-600">Active Exam</div>
+            <div className="text-sm text-gray-600">Currently Viewing</div>
             <div className="text-xl font-semibold">{settings.subjectName || 'Subject'} — {settings.examName || `Exam #${settings.id}`}</div>
             <div className="text-sm text-gray-700">Chapter: {settings.chapterName || '—'} · Total Time: {settings.totalTimeMinutes}m · Questions: {settings.totalQuestions}</div>
           </div>

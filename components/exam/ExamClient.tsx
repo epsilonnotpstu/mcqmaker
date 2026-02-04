@@ -8,11 +8,13 @@ import { Question } from "@/lib/types";
 import { submitExamAction } from "@/actions/submitExam";
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertTriangle, Lock, Timer, CheckCircle, BookOpen, Target } from 'lucide-react';
+import FloatingSubmitButton from '@/components/exam/FloatingSubmitButton';
 
 export default function ExamClient({ deadlineEpoch, questions }: { deadlineEpoch: number; questions: Question[] }) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>(() => new Array(questions.length).fill(null));
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
 
   // Local timer
@@ -25,21 +27,32 @@ export default function ExamClient({ deadlineEpoch, questions }: { deadlineEpoch
   }, [deadlineEpoch, submitted]);
 
   const doSubmit = async () => {
+    if (isSubmitting || submitted) return;
+    
+    setIsSubmitting(true);
     setSubmitted(true);
-    const fd = new FormData();
-    fd.set("answers", JSON.stringify(answers));
-    await submitExamAction(fd);
+    
+    try {
+      const fd = new FormData();
+      fd.set("answers", JSON.stringify(answers));
+      await submitExamAction(fd);
+    } catch (error) {
+      console.error('Submit failed:', error);
+    } finally {
+      // Keep submitting state as true since we're redirecting
+    }
   };
 
   const onTimeUp = useCallback(() => {
-    if (!submitted) {
+    if (!submitted && !isSubmitting) {
+      setIsSubmitting(true);
       setSubmitted(true);
       const fd = new FormData();
       fd.set("answers", JSON.stringify(answers));
       // Fire and forget; page will redirect after server action
       submitExamAction(fd);
     }
-  }, [submitted, answers]);
+  }, [submitted, isSubmitting, answers]);
 
   React.useEffect(() => {
     if (timeLeft <= 0 && !submitted) onTimeUp();
@@ -200,6 +213,15 @@ export default function ExamClient({ deadlineEpoch, questions }: { deadlineEpoch
             </div>
           </CardContent>
         </Card>
+        
+        {/* Floating Submit Button */}
+        <FloatingSubmitButton
+          onSubmit={doSubmit}
+          canSubmit={answers.every((a) => a !== null)}
+          isSubmitting={isSubmitting}
+          answeredCount={answers.filter(a => a !== null).length}
+          totalQuestions={questions.length}
+        />
       </div>
     </div>
   );

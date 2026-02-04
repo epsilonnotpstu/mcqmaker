@@ -42,39 +42,24 @@ export default function QuizNavigation({
             </Button>
           </div>
 
-          {/* Center - Submit Warning */}
-          {!canSubmit && (
-            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-sm">
-              <AlertCircle className="w-4 h-4" />
-              <span>সকল প্রশ্নের উত্তর দিন</span>
-            </div>
-          )}
+          {/* Center - Floating Submit Info */}
+          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 text-sm">
+            <Send className="w-4 h-4" />
+            <span>জমা দিতে নিচের ফ্লোটিং বাটন ব্যবহার করুন</span>
+          </div>
 
-          {/* Right Side - Next & Submit Buttons */}
+          {/* Right Side - Next Button Only */}
           <div className="flex-1 flex justify-end">
-            <div className="flex gap-3">
-              {!isLast && (
-                <Button 
-                  onClick={onNext} 
-                  size="lg"
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg min-w-[120px]"
-                >
-                  পরবর্তী
-                  <ChevronRight className="w-5 h-5 ml-2" />
-                </Button>
-              )}
-              
-              <Button
-                onClick={onSubmit}
-                variant="default"
+            {!isLast && (
+              <Button 
+                onClick={onNext} 
                 size="lg"
-                disabled={!canSubmit}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg min-w-[130px]"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg min-w-[120px]"
               >
-                <Send className="w-5 h-5 mr-2" />
-                পরীক্ষা জমা দিন
+                পরবর্তী
+                <ChevronRight className="w-5 h-5 ml-2" />
               </Button>
-            </div>
+            )}
           </div>
         </div>
         

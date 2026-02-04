@@ -1,9 +1,10 @@
 import { Question, QuizResult, QuestionResult } from './types';
-import { QUIZ_CONFIG } from './questions';
+// passPercentage is used in UI, scoring config is provided by caller
 
 export function calculateScore(
   questions: Question[],
-  answers: (number | null)[]
+  answers: (number | null)[],
+  config: { marksPerCorrect: number; negativePerWrong: number; unattemptedPoints?: number }
 ): QuizResult {
   let correctAnswers = 0;
   let wrongAnswers = 0;
@@ -17,14 +18,14 @@ export function calculateScore(
 
     if (selectedAnswer === null) {
       unattempted++;
-      points = QUIZ_CONFIG.unattemptedPoints;
+      points = Number(config.unattemptedPoints ?? 0);
     } else if (isCorrect) {
       correctAnswers++;
-      points = QUIZ_CONFIG.correctPoints;
+      points = Number(config.marksPerCorrect);
       score += points;
     } else {
       wrongAnswers++;
-      points = QUIZ_CONFIG.wrongPoints;
+      points = Number(config.negativePerWrong);
       score += points;
     }
 
@@ -39,7 +40,7 @@ export function calculateScore(
     };
   });
 
-  const totalPossible = questions.length * QUIZ_CONFIG.correctPoints;
+  const totalPossible = questions.length * Number(config.marksPerCorrect);
   const percentage = ((score / totalPossible) * 100).toFixed(2);
 
   return {

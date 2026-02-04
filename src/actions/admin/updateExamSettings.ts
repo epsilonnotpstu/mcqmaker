@@ -5,6 +5,7 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 
 const SettingsSchema = z.object({
+  examId: z.preprocess((v) => (v === undefined || v === null || v === "" ? undefined : Number(v)), z.number().int().positive()).optional(),
   examName: z.string().trim().min(1, { message: "Exam Name is required" }).max(100).optional().or(z.literal("")),
   subjectName: z.string().trim().min(1, { message: "Subject Name is required" }).max(100).optional().or(z.literal("")),
   chapterName: z.string().trim().max(150).optional().or(z.literal("")),
@@ -12,7 +13,13 @@ const SettingsSchema = z.object({
     .preprocess((v) => Number(v), z.number().int().min(1).max(1000))
     .default(60),
   marksPerCorrect: z.preprocess((v) => Number(v), z.number().min(0).max(100)).default(4),
-  negativePerWrong: z.preprocess((v) => Number(v), z.number().min(-100).max(0)).default(-1),
+  negativePerWrong: z.preprocess((v) => {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return n;
+    // If user enters a positive value like 0.25 for negative marking,
+    // convert it to -0.25 automatically for convenience.
+    return n > 0 ? -n : n;
+  }, z.number().min(-100).max(0)).default(-1),
   isActive: z.preprocess((v) => String(v) === "on", z.boolean()).default(false),
 });
 
@@ -25,6 +32,7 @@ export async function updateExamSettingsAction(formData: FormData) {
   }
 
   const {
+    examId,
     examName,
     subjectName,
     chapterName,
@@ -34,28 +42,42 @@ export async function updateExamSettingsAction(formData: FormData) {
     isActive,
   } = parsed.data;
 
-  await prisma.examSettings.upsert({
-    where: { id: 1 },
-    update: {
-      examName: examName || null,
-      subjectName: subjectName || null,
-      chapterName: chapterName || null,
-      totalTimeMinutes,
-      marksPerCorrect,
-      negativePerWrong,
-      isActive,
-    },
-    create: {
-      id: 1,
-      examName: examName || null,
-      subjectName: subjectName || null,
-      chapterName: chapterName || null,
-      totalTimeMinutes,
-      marksPerCorrect,
-      negativePerWrong,
-      isActive,
-    },
-  });
+  let targetId: number;
+  if (examId) {
+    await prisma.examSettings.update({
+      where: { id: examId },
+      data: {
+        examName: examName || null,
+        subjectName: subjectName || null,
+        chapterName: chapterName || null,
+        totalTimeMinutes,
+        marksPerCorrect,
+        negativePerWrong,
+        isActive,
+      },
+    });
+    targetId = examId;
+  } else {
+    const created = await prisma.examSettings.create({
+      data: {
+        examName: examName || null,
+        subjectName: subjectName || null,
+        chapterName: chapterName || null,
+        totalTimeMinutes,
+        marksPerCorrect,
+        negativePerWrong,
+        isActive,
+      },
+    });
+    targetId = created.id;
+  }
 
-  redirect(`/admin/dashboard?updated=1`);
+  if (isActive) {
+    await prisma.examSettings.updateMany({
+      where: { id: { not: targetId } },
+      data: { isActive: false },
+    });
+  }
+
+  redirect(`/admin/dashboard/addquestion?updated=1&examId=${targetId}`);
 }

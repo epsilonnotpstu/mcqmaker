@@ -11,35 +11,52 @@ datasource db {
 }
 
 model ExamSettings {
-  id               Int      @id @default(1)
-  examName         String?  @db.VarChar(100)
-  subjectName      String?  @db.VarChar(100)
-  chapterName      String?  @db.VarChar(150)
-  totalTimeMinutes Int      @default(60)
-  marksPerCorrect  Float    @default(4)
-  negativePerWrong Float    @default(-1)
-  isActive         Boolean  @default(false)
-  totalQuestions   Int      @default(0)
-  updatedAt        DateTime @updatedAt
+  id               Int              @id @default(autoincrement())
+  examName         String?          @db.VarChar(100)
+  subjectName      String?          @db.VarChar(100)
+  chapterName      String?          @db.VarChar(150)
+  totalTimeMinutes Int              @default(60)
+  marksPerCorrect  Float            @default(4)
+  negativePerWrong Float            @default(-1)
+  isActive         Boolean          @default(false)
+  totalQuestions   Int              @default(0)
+  updatedAt        DateTime         @updatedAt
+
+  // Relations
+  questions        Question[]
+  attempts         StudentAttempt[]
+
+  @@index([isActive])
+  @@unique([subjectName, examName])
 }
 
 model Question {
-  id           Int    @id @default(autoincrement())
+  id           Int          @id @default(autoincrement())
   questionText String
   option1      String
   option2      String
   option3      String
   option4      String
-  correctIndex Int    // 0 to 3
+  correctIndex Int          // 0 to 3
+
+  // FK to ExamSettings
+  examId       Int
+  exam         ExamSettings @relation(fields: [examId], references: [id], onDelete: Cascade)
 }
 
 model StudentAttempt {
-  id          String   @id @default(uuid())
+  id          String       @id @default(uuid())
   name        String
   phone       String
-  startedAt   DateTime @default(now())
+  startedAt   DateTime     @default(now())
   submittedAt DateTime?
   answers     Json?
   score       Float?
-  status      String   @default("ongoing") // ongoing, submitted, expired
+  status      String       @default("ongoing") // ongoing, submitted, expired
+
+  // FK to ExamSettings
+  examId      Int
+  exam        ExamSettings @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@index([examId])
 }

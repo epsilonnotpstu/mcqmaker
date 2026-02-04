@@ -10,11 +10,12 @@ export default async function ExamPage() {
   const attemptId = cookieStore.get(STUDENT_COOKIE_NAME)?.value;
   if (!attemptId) redirect('/enter');
 
-  const settings = await prisma.examSettings.findUnique({ where: { id: 1 } });
   const attempt = await prisma.studentAttempt.findUnique({ where: { id: attemptId } });
-  const dbQuestions = await prisma.question.findMany({ orderBy: { id: 'asc' } });
+  if (!attempt) redirect('/enter');
+  const settings = await prisma.examSettings.findUnique({ where: { id: attempt.examId } });
+  const dbQuestions = await prisma.question.findMany({ where: { examId: attempt.examId }, orderBy: { id: 'asc' } });
 
-  if (!settings || !attempt || attempt.status !== 'ongoing') {
+  if (!settings || attempt.status !== 'ongoing') {
     redirect('/enter');
   }
 

@@ -17,7 +17,7 @@ export async function enterAction(formData: FormData) {
     return { ok: false, error: "Phone must be 11 digits" };
   }
 
-  const settings = await prisma.examSettings.findUnique({ where: { id: 1 } });
+  const settings = await prisma.examSettings.findFirst({ where: { isActive: true }, orderBy: { updatedAt: 'desc' } });
   if (!settings || !settings.isActive) {
     return { ok: false, error: "No active exam at the moment" };
   }
@@ -28,6 +28,7 @@ export async function enterAction(formData: FormData) {
       phone,
       status: "ongoing",
       answers: {},
+      examId: settings.id,
     },
   });
   const cookieStore = await cookies();

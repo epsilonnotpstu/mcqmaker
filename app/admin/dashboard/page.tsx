@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+// import { Button } from '@/components/ui/button';
 
 // Server action: update settings
 // Moved to actions/admin/updateExamSettings.ts
@@ -25,16 +25,32 @@ export default async function AdminDashboardPage() {
     );
   }
 
-  const settings = await prisma.examSettings.findUnique({ where: { id: 1 } });
-  const questions = await prisma.question.findMany({ orderBy: { id: 'asc' } });
-  const attempts = await prisma.studentAttempt.findMany({ where: { status: 'submitted' } });
+  const settings = await prisma.examSettings.findFirst({ where: { isActive: true }, orderBy: { updatedAt: 'desc' } });
+  // If no active exam, show a call to action
+  if (!settings) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-4">
+        <div className="max-w-3xl mx-auto py-8 space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+            <Link href="/admin/dashboard/newexam" className="inline-flex items-center justify-center rounded-md h-10 px-4 text-sm font-medium border border-border bg-transparent hover:bg-black/5 dark:hover:bg-white/10">Create New Exam</Link>
+          </div>
+          <div className="rounded-xl border bg-white dark:bg-gray-900 p-6 shadow">
+            <p className="text-gray-700">No active exam found. Create a new exam to get started, then upload questions.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  const questions = await prisma.question.findMany({ where: { examId: settings.id }, orderBy: { id: 'asc' } });
+  const attempts = await prisma.studentAttempt.findMany({ where: { status: 'submitted', examId: settings.id } });
 
   const rows = attempts.map((att) => {
     const answersObj = (att.answers || {}) as Record<string, number | null>;
     let score = 0;
     let wrong = 0;
     for (let i = 0; i < questions.length; i++) {
-      const selected = (answersObj as any)[i] ?? null;
+      const selected = answersObj[String(i)] ?? null;
       const correct = questions[i]?.correctIndex ?? -1;
       if (selected === null || selected === undefined) continue;
       if (selected === correct) {
@@ -58,22 +74,19 @@ export default async function AdminDashboardPage() {
       <div className="max-w-5xl mx-auto py-8 space-y-8">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <Button asChild>
-            <a href="/admin/dashboard/addquestion">Add Question</a>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link href={`/admin/dashboard/addquestion?examId=${settings.id}`} className="inline-flex items-center justify-center rounded-md h-10 px-4 text-sm font-medium border border-border bg-transparent hover:bg-black/5 dark:hover:bg-white/10">Manage Questions</Link>
+            <Link href="/admin/dashboard/newexam" className="inline-flex items-center justify-center rounded-md h-10 px-4 text-sm font-medium border border-border bg-transparent hover:bg-black/5 dark:hover:bg-white/10">Create New Exam</Link>
+          </div>
         </div>
 
         {/* Subject dropdown with exam names */}
         <div className="rounded-xl border bg-white dark:bg-gray-900 p-6 shadow">
-          <details>
-            <summary className="cursor-pointer text-xl font-semibold">{settings?.subjectName || 'Subject'}</summary>
-            <div className="mt-4 text-sm text-gray-700">
-              <p className="mb-2">Exam(s):</p>
-              <ul className="list-disc pl-5">
-                <li>{settings?.examName || 'Exam'}</li>
-              </ul>
-            </div>
-          </details>
+          <div className="space-y-2">
+            <div className="text-sm text-gray-600">Active Exam</div>
+            <div className="text-xl font-semibold">{settings.subjectName || 'Subject'} — {settings.examName || `Exam #${settings.id}`}</div>
+            <div className="text-sm text-gray-700">Chapter: {settings.chapterName || '—'} · Total Time: {settings.totalTimeMinutes}m · Questions: {settings.totalQuestions}</div>
+          </div>
         </div>
 
         {/* Attempts table sorted by score */}

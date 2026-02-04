@@ -14,7 +14,10 @@ export async function submitExamAction(formData: FormData) {
 
   const answersRaw = String(formData.get("answers") || "{}");
   const answers: (number | null)[] = JSON.parse(answersRaw);
-  const dbQuestions = await prisma.question.findMany({ orderBy: { id: "asc" } });
+  const attempt = await prisma.studentAttempt.findUnique({ where: { id: attemptId } });
+  if (!attempt) redirect("/enter");
+  const dbQuestions = await prisma.question.findMany({ where: { examId: attempt.examId }, orderBy: { id: "asc" } });
+  const settings = await prisma.examSettings.findUnique({ where: { id: attempt.examId } });
 
   const questions: Question[] = dbQuestions.map((q: { id: number; questionText: string; option1: string; option2: string; option3: string; option4: string; correctIndex: number }) => ({
     id: q.id,
@@ -23,7 +26,11 @@ export async function submitExamAction(formData: FormData) {
     correctAnswer: q.correctIndex,
   }));
 
-  const result = calculateScore(questions, answers);
+  const result = calculateScore(questions, answers, {
+    marksPerCorrect: Number(settings?.marksPerCorrect ?? 1),
+    negativePerWrong: Number(settings?.negativePerWrong ?? 0),
+    unattemptedPoints: 0,
+  });
 
   await prisma.studentAttempt.update({
     where: { id: attemptId },

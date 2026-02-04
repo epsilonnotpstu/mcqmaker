@@ -8,9 +8,12 @@ import { QUIZ_CONFIG } from '@/lib/questions';
 
 interface ScoreCardProps {
   result: QuizResult;
+  marksPerCorrect: number;
+  negativePerWrong: number;
+  unattemptedPoints?: number;
 }
 
-export default function ScoreCard({ result }: ScoreCardProps) {
+export default function ScoreCard({ result, marksPerCorrect, negativePerWrong, unattemptedPoints = 0 }: ScoreCardProps) {
   const isPassed = result.percentage >= QUIZ_CONFIG.passPercentage;
 
   return (
@@ -70,9 +73,9 @@ export default function ScoreCard({ result }: ScoreCardProps) {
 
         {/* Marking Scheme */}
         <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1 border-t pt-4">
-          <p>• সঠিক উত্তর: +{QUIZ_CONFIG.correctPoints} নম্বর</p>
-          <p>• ভুল উত্তর: {QUIZ_CONFIG.wrongPoints} নম্বর</p>
-          <p>• উত্তর না দিলে: {QUIZ_CONFIG.unattemptedPoints} নম্বর</p>
+          <p>• সঠিক উত্তর: +{marksPerCorrect} নম্বর</p>
+          <p>• ভুল উত্তর: {negativePerWrong} নম্বর</p>
+          <p>• উত্তর না দিলে: {unattemptedPoints} নম্বর</p>
         </div>
       </CardContent>
     </Card>

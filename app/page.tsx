@@ -5,11 +5,15 @@ import { BookOpen, Clock, Award, CheckCircle } from 'lucide-react';
 import { prisma } from '@/lib/db';
 
 export default async function Home() {
-  let settings: { totalTimeMinutes: number; marksPerCorrect: number; negativePerWrong: number; isActive: boolean } | null = null;
+  let settings: { id: number; examName: string | null; subjectName: string | null; chapterName: string | null; totalTimeMinutes: number; marksPerCorrect: number; negativePerWrong: number; isActive: boolean } | null = null;
   let totalQuestions = 0;
   try {
-    settings = await prisma.examSettings.findUnique({ where: { id: 1 } });
-    totalQuestions = await prisma.question.count();
+    settings = await prisma.examSettings.findFirst({ where: { isActive: true }, orderBy: { updatedAt: 'desc' } });
+    if (settings) {
+      totalQuestions = await prisma.question.count({ where: { examId: settings.id } });
+    } else {
+      totalQuestions = await prisma.question.count();
+    }
   } catch {
     // DB not configured; fall back to defaults
   }
@@ -53,6 +57,18 @@ export default async function Home() {
               <div className="flex justify-between">
                 <span className="text-gray-600">পাসের নম্বর:</span>
                 <span className="font-semibold">{passPercentage}%</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">পরীক্ষার নাম:</span>
+                <span className="font-semibold">{settings?.examName || '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">বিষয়:</span>
+                <span className="font-semibold">{settings?.subjectName || '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">চ্যাপ্টার:</span>
+                <span className="font-semibold">{settings?.chapterName || '—'}</span>
               </div>
             </CardContent>
           </Card>

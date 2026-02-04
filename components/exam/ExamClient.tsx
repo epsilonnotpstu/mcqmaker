@@ -1,12 +1,11 @@
 "use client";
 
 import React, { useCallback, useState } from "react";
-import QuizHeader from "@/components/quiz/QuizHeader";
-import QuestionCard from "@/components/quiz/QuestionCard";
-import QuizNavigation from "@/components/quiz/QuizNavigation";
-import { Question } from "@/lib/types";
-import { submitExamAction } from "@/actions/submitExam";
-import { Card, CardContent } from '@/components/ui/card';
+import QuestionCard from "../../src/components/quiz/QuestionCard";
+import QuizNavigation from "../../src/components/quiz/QuizNavigation";
+import { Question } from "../../src/lib/types";
+import { submitExamAction } from "../../src/actions/submitExam";
+import { Card, CardContent } from '../ui/card';
 import { AlertTriangle, Lock, Timer, CheckCircle, BookOpen, Target } from 'lucide-react';
 import FloatingSubmitButton from './FloatingSubmitButton';
 
@@ -16,6 +15,7 @@ export default function ExamClient({ deadlineEpoch, questions }: { deadlineEpoch
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [showSubmitOverlay, setShowSubmitOverlay] = useState(false);
 
   // Local timer
   React.useEffect(() => {
@@ -29,6 +29,8 @@ export default function ExamClient({ deadlineEpoch, questions }: { deadlineEpoch
   const doSubmit = async () => {
     if (isSubmitting || submitted) return;
     
+    // Show full screen overlay immediately
+    setShowSubmitOverlay(true);
     setIsSubmitting(true);
     setSubmitted(true);
     
@@ -38,19 +40,27 @@ export default function ExamClient({ deadlineEpoch, questions }: { deadlineEpoch
       await submitExamAction(fd);
     } catch (error) {
       console.error('Submit failed:', error);
-    } finally {
-      // Keep submitting state as true since we're redirecting
+      // On error, hide overlay and reset states
+      setShowSubmitOverlay(false);
+      setIsSubmitting(false);
+      setSubmitted(false);
     }
   };
 
-  const onTimeUp = useCallback(() => {
+  const onTimeUp = useCallback(async () => {
     if (!submitted && !isSubmitting) {
+      // Show overlay for auto submit
+      setShowSubmitOverlay(true);
       setIsSubmitting(true);
       setSubmitted(true);
-      const fd = new FormData();
-      fd.set("answers", JSON.stringify(answers));
-      // Fire and forget; page will redirect after server action
-      submitExamAction(fd);
+      
+      try {
+        const fd = new FormData();
+        fd.set("answers", JSON.stringify(answers));
+        await submitExamAction(fd);
+      } catch (error) {
+        console.error('Auto submit failed:', error);
+      }
     }
   }, [submitted, isSubmitting, answers]);
 
@@ -113,6 +123,29 @@ export default function ExamClient({ deadlineEpoch, questions }: { deadlineEpoch
           </CardContent>
         </Card>
 
+        {/* Time Warning - Show when less than 2 minutes */}
+        {timeLeft <= 120 && timeLeft > 0 && (
+          <Card className="border-2 border-orange-400 bg-orange-50/90 dark:bg-orange-950/50 backdrop-blur-sm animate-pulse">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3 justify-center text-center">
+                <Timer className="w-6 h-6 text-orange-600 dark:text-orange-400 animate-bounce" />
+                <div>
+                  <h3 className="text-lg font-bold text-orange-800 dark:text-orange-200">
+                    ⏰ সময় শেষ হয়ে আসছে!
+                  </h3>
+                  <p className="text-orange-700 dark:text-orange-300">
+                    {timeLeft <= 60 
+                      ? 'আর মাত্র ১ মিনিট বাকি! দ্রুত সকল প্রশ্নের উত্তর সম্পন্ন করুন।'
+                      : 'আর মাত্র ২ মিনিট বাকি! দ্রুত উত্তর দিন।'
+                    }
+                  </p>
+                </div>
+                <Timer className="w-6 h-6 text-orange-600 dark:text-orange-400 animate-bounce" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Quiz Header */}
         <Card className="backdrop-blur-sm bg-white/80 dark:bg-gray-900/80 border-0 shadow-xl">
           <CardContent className="p-6">
@@ -132,10 +165,13 @@ export default function ExamClient({ deadlineEpoch, questions }: { deadlineEpoch
               </div>
               <div className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-orange-500 text-white px-4 py-2 rounded-lg">
                 <Timer className="w-5 h-5" />
-                <span className="text-lg font-mono">
+                <span className={`text-lg font-mono ${timeLeft <= 60 ? 'animate-pulse' : ''}`}>
                   {Math.floor(timeLeft / 60).toString().padStart(2, '0')}:
                   {(timeLeft % 60).toString().padStart(2, '0')}
                 </span>
+                {timeLeft <= 60 && (
+                  <span className="text-sm animate-bounce ml-2">⚠️</span>
+                )}
               </div>
             </div>
           </CardContent>
@@ -145,7 +181,7 @@ export default function ExamClient({ deadlineEpoch, questions }: { deadlineEpoch
         <QuestionCard 
           question={currentQuestion} 
           selectedAnswer={currentAnswer} 
-          onSelectAnswer={(idx) => setAnswer(currentQuestionIndex, idx)} 
+          onSelectAnswer={(idx: number) => setAnswer(currentQuestionIndex, idx)} 
         />
 
         {/* Navigation */}
@@ -215,12 +251,50 @@ export default function ExamClient({ deadlineEpoch, questions }: { deadlineEpoch
         {/* Floating Submit Button */}
         <FloatingSubmitButton
           onSubmit={doSubmit}
-          canSubmit={answers.every((a) => a !== null)}
           isSubmitting={isSubmitting}
           answeredCount={answers.filter(a => a !== null).length}
           totalQuestions={questions.length}
         />
       </div>
+
+      {/* Full Screen Submit Overlay */}
+      {showSubmitOverlay && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center">
+          {/* Backdrop Blur */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          
+          {/* Submit Animation */}
+          <div className="relative z-10 bg-white dark:bg-gray-900 rounded-3xl p-12 shadow-2xl border border-gray-200 dark:border-gray-700 text-center max-w-md mx-4">
+            <div className="space-y-6">
+              {/* Spinning Animation */}
+              <div className="relative mx-auto w-20 h-20">
+                <div className="absolute inset-0 border-4 border-blue-200 dark:border-blue-800 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <div className="absolute inset-2 border-2 border-green-200 dark:border-green-800 rounded-full"></div>
+                <div className="absolute inset-2 border-2 border-green-500 border-t-transparent rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '0.8s' }}></div>
+                <CheckCircle className="absolute inset-0 m-auto w-8 h-8 text-green-600 dark:text-green-400" />
+              </div>
+              
+              {/* Text */}
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  পরীক্ষা জমা দেওয়া হচ্ছে...
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  অনুগ্রহ করে অপেক্ষা করুন
+                </p>
+              </div>
+              
+              {/* Progress Indicator */}
+              <div className="flex justify-center space-x-2">
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,104 +1,78 @@
 import { prisma } from '@/lib/db';
-import Link from 'next/link';
-import ScoreCard from '@/components/result/ScoreCard';
-import AnswerReviewTable from '@/components/result/AnswerReviewTable';
+import ResultClient from './ResultClient';
+import { redirect } from 'next/navigation';
 
 export default async function ResultAttemptPage({ params }: { params: Promise<{ attemptId: string }> }) {
   const p = await params;
-  const attempt = await prisma.studentAttempt.findUnique({ where: { id: p.attemptId } });
+  const attempt = await prisma.studentAttempt.findUnique({ 
+    where: { id: p.attemptId },
+    include: {
+      exam: {
+        include: {
+          questions: {
+            orderBy: { id: 'asc' }
+          }
+        }
+      }
+    }
+  });
+  
   if (!attempt || attempt.status !== 'submitted') {
-    return (
-      <div className="min-h-screen p-4 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
-        <div className="max-w-4xl mx-auto py-8 space-y-6">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Exam Result</h1>
-            <Link href="/" className="inline-flex items-center justify-center rounded-md h-10 px-4 text-sm font-medium border border-border bg-transparent hover:bg-black/5 dark:hover:bg-white/10">
-              Home Page
-            </Link>
-          </div>
-          <div className="rounded-xl border bg-white dark:bg-gray-900 p-6 shadow text-center">
-            <p>Result not available</p>
-          </div>
-        </div>
-      </div>
-    );
+    redirect('/');
   }
 
   const settings = await prisma.examSettings.findUnique({ where: { id: attempt.examId } });
   if (!settings) {
-    return (
-      <div className="min-h-screen p-4 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
-        <div className="max-w-4xl mx-auto py-8 space-y-6">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Exam Result</h1>
-            <Link href="/" className="inline-flex items-center justify-center rounded-md h-10 px-4 text-sm font-medium border border-border bg-transparent hover:bg-black/5 dark:hover:bg-white/10">
-              Home Page
-            </Link>
-          </div>
-          <div className="rounded-xl border bg-white dark:bg-gray-900 p-6 shadow text-center">
-            <p>Exam settings not found</p>
-          </div>
-        </div>
-      </div>
-    );
+    redirect('/');
   }
 
   const answersObj = (attempt.answers || {}) as Record<string, number | null>;
-  const dbQuestions = await prisma.question.findMany({ where: { examId: attempt.examId }, orderBy: { id: 'asc' } });
+  const dbQuestions = attempt.exam?.questions || [];
 
   const details: Array<{
     questionId: number;
     question: string;
     options: string[];
-    selectedAnswer: number | null;
     correctAnswer: number;
+    userAnswer: number | null;
     isCorrect: boolean;
-    points: number;
-  }> = dbQuestions.map((q: { id: number; questionText: string; option1: string; option2: string; option3: string; option4: string; correctIndex: number }, idx: number) => {
-    const selected = (answersObj[String(idx)] ?? null) as number | null;
-    const isCorrect = selected === q.correctIndex;
-    const points = selected === null ? 0 : isCorrect ? settings.marksPerCorrect : settings.negativePerWrong;
+  }> = dbQuestions.map((q, index) => {
+    const userAnswer = answersObj[index.toString()] ?? null;
+    const isCorrect = userAnswer === q.correctIndex;
     return {
       questionId: q.id,
       question: q.questionText,
       options: [q.option1, q.option2, q.option3, q.option4],
-      selectedAnswer: selected,
       correctAnswer: q.correctIndex,
+      userAnswer,
       isCorrect,
-      points: Number(points),
     };
   });
 
-  const totalPossible = dbQuestions.length * settings.marksPerCorrect;
-  const score = attempt.score ?? 0;
-  const correctAnswers = details.filter((d) => d.isCorrect).length;
-  const wrongAnswers = details.filter((d) => d.selectedAnswer !== null && !d.isCorrect).length;
-  const unattempted = details.filter((d) => d.selectedAnswer === null).length;
-  const percentage = Number(((score / totalPossible) * 100).toFixed(2));
+  const totalQuestions = details.length;
+  const correctAnswers = details.filter(d => d.isCorrect).length;
+  const wrongAnswers = details.filter(d => d.userAnswer !== null && !d.isCorrect).length;
+  const unattempted = details.filter(d => d.userAnswer === null).length;
+  const percentage = Math.round((correctAnswers / totalQuestions) * 100);
+  const grade = percentage >= 80 ? 'A+' : percentage >= 70 ? 'A' : percentage >= 60 ? 'B' : percentage >= 50 ? 'C' : percentage >= 40 ? 'D' : 'F';
 
-  const result = {
-    score: Number(score),
-    totalQuestions: dbQuestions.length,
+  const resultData = {
+    score: attempt.score || 0,
+    totalQuestions,
     correctAnswers,
     wrongAnswers,
     unattempted,
-    totalPossible: Number(totalPossible),
     percentage,
+    grade,
     details,
+    timeTaken: attempt.submittedAt && attempt.startedAt ? 
+      Math.round((new Date(attempt.submittedAt).getTime() - new Date(attempt.startedAt).getTime()) / 1000) : 0,
+    submittedAt: attempt.submittedAt,
+    startedAt: attempt.startedAt,
+    examTitle: settings.examName || 'MCQ পরীক্ষা',
+    marksPerCorrect: settings.marksPerCorrect || 1,
+    negativePerWrong: settings.negativePerWrong || 0
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-4">
-      <div className="max-w-4xl mx-auto py-8 space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Exam Result</h1>
-          <Link href="/" className="inline-flex items-center justify-center rounded-md h-10 px-4 text-sm font-medium border border-border bg-transparent hover:bg-black/5 dark:hover:bg-white/10">
-            Home Page
-          </Link>
-        </div>
-        <ScoreCard result={result} marksPerCorrect={Number(settings.marksPerCorrect)} negativePerWrong={Number(settings.negativePerWrong)} unattemptedPoints={0} />
-        <AnswerReviewTable details={result.details} />
-      </div>
-    </div>
-  );
+  return <ResultClient resultData={resultData} />;
 }

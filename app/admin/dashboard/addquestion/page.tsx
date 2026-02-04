@@ -2,6 +2,8 @@ import { prisma } from '@/lib/db';
 import { redirect } from 'next/navigation';
 import { updateExamSettingsAction } from '@/actions/admin/updateExamSettings';
 import { uploadQuestionsAction } from '@/actions/admin/uploadQuestions';
+import { deleteExamAction } from '@/actions/admin/deleteExam';
+import { DeleteExamButton } from '@/components/DeleteExamButton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
@@ -121,8 +123,28 @@ npx prisma migrate dev --name init</pre>
               <input id="isActive" name="isActive" type="checkbox" defaultChecked={settings.isActive} />
               <label htmlFor="isActive">Exam Active</label>
             </div>
-            <div className="md:col-span-2 flex justify-end">
-              <Button type="submit" className="px-4 py-2">Save Settings</Button>
+            <div className="md:col-span-2 flex justify-between items-center">
+              <div className="flex gap-2">
+                <Button type="submit" className="px-4 py-2">Save Settings</Button>
+                
+                {/* Delete Exam Button */}
+                {allExams.length > 1 && (
+                  <DeleteExamButton
+                    examId={settings.id}
+                    examName={settings.examName || ''}
+                    subjectName={settings.subjectName}
+                    totalQuestions={totalQuestions}
+                    disabled={allExams.length <= 1}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium transition-colors"
+                  />
+                )}
+              </div>
+              
+              {allExams.length <= 1 && (
+                <span className="text-sm text-gray-500">
+                  Cannot delete the last exam
+                </span>
+              )}
             </div>
           </form>
           <p className="mt-3 text-sm text-gray-600">Total Questions: {totalQuestions}</p>

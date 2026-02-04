@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/db';
 import Link from 'next/link';
+import { deleteExamAction } from '@/actions/admin/deleteExam';
+import { DeleteExamButton } from '@/components/DeleteExamButton';
 // import { Button } from '@/components/ui/button';
 
 // Server action: update settings
@@ -8,7 +10,7 @@ import Link from 'next/link';
 // Server action: upload questions
 // Moved to actions/admin/uploadQuestions.ts
 
-export default async function AdminDashboardPage({ searchParams }: { searchParams?: Promise<{ examId?: string }> }) {
+export default async function AdminDashboardPage({ searchParams }: { searchParams?: Promise<{ examId?: string; success?: string; error?: string }> }) {
   // Gracefully handle missing DATABASE_URL / DB not ready
   const dbUrl = process.env.DATABASE_URL;
   if (!dbUrl) {
@@ -88,6 +90,18 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
           </div>
         </div>
 
+        {/* Success/Error Messages */}
+        {params?.success && (
+          <div className="rounded bg-green-100 text-green-800 p-3 text-sm">
+            {decodeURIComponent(params.success)}
+          </div>
+        )}
+        {params?.error && (
+          <div className="rounded bg-red-100 text-red-700 p-3 text-sm">
+            {decodeURIComponent(params.error)}
+          </div>
+        )}
+
         {/* Exam Selector */}
         {allExams.length > 1 && (
           <div className="rounded-xl border bg-white dark:bg-gray-900 p-6 shadow">
@@ -115,6 +129,13 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
                     <Link href={`/admin/dashboard/addquestion?examId=${exam.id}`} className="text-sm text-green-600 hover:underline">
                       Manage
                     </Link>
+                    <DeleteExamButton
+                      examId={exam.id}
+                      examName={exam.examName || ''}
+                      subjectName={exam.subjectName}
+                      totalQuestions={exam.totalQuestions}
+                      disabled={allExams.length <= 1}
+                    />
                   </div>
                 </div>
               ))}

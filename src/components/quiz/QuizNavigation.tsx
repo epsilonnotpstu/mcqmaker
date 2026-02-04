@@ -9,8 +9,6 @@ interface QuizNavigationProps {
   totalQuestions: number;
   onPrev: () => void;
   onNext: () => void;
-  onSubmit: () => void;
-  canSubmit: boolean;
 }
 
 export default function QuizNavigation({
@@ -18,8 +16,6 @@ export default function QuizNavigation({
   totalQuestions,
   onPrev,
   onNext,
-  onSubmit,
-  canSubmit,
 }: QuizNavigationProps) {
   const isFirst = currentQuestion === 0;
   const isLast = currentQuestion === totalQuestions - 1;

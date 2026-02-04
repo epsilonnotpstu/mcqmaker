@@ -154,8 +154,6 @@ export default function ExamClient({ deadlineEpoch, questions }: { deadlineEpoch
           totalQuestions={questions.length}
           onPrev={() => setCurrentQuestionIndex((i) => Math.max(0, i - 1))}
           onNext={() => setCurrentQuestionIndex((i) => Math.min(questions.length - 1, i + 1))}
-          onSubmit={doSubmit}
-          canSubmit={answers.every((a) => a !== null)}
         />
 
         {/* Question Grid - Enhanced */}

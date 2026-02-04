@@ -25,7 +25,8 @@ export default function QuizPlayPage() {
 
   const handleSubmit = useCallback(() => {
     setSubmitted(true);
-    const result = calculateScore(questions, answers);
+    const config = { marksPerCorrect: 4, negativePerWrong: -1, unattemptedPoints: 0 };
+    const result = calculateScore(questions, answers, config);
     localStorage.setItem('quizResult', JSON.stringify(result));
     router.push('/result');
   }, [answers, setSubmitted, router]);

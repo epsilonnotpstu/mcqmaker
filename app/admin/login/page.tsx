@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import React, { useState, useTransition, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { loginAction } from './actions';
 
 // Server action lives in ./actions.ts and is imported here
 
-export default function AdminLoginPage() {
+function LoginForm() {
   const params = useSearchParams();
   const router = useRouter();
   const [error, setError] = useState<string | null>(params.get('error'));
@@ -75,5 +75,13 @@ export default function AdminLoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen">Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }

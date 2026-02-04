@@ -53,7 +53,12 @@ export default function ResultPage() {
           </p>
         </div>
 
-        <ScoreCard result={result} />
+        <ScoreCard 
+          result={result} 
+          marksPerCorrect={4} 
+          negativePerWrong={-1} 
+          unattemptedPoints={0} 
+        />
 
         <div className="flex justify-center gap-4">
           <Button onClick={handleHome} variant="outline" size="lg">

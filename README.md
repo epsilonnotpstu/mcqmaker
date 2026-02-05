@@ -10,6 +10,12 @@ A complete MCQ (Multiple Choice Question) exam platform built with Next.js, Type
 - **Score Calculation**: Positive/negative marking system
 - **Result Analysis**: Detailed answer review
 
+
+## Live Link
+
+**https://mcqmaker-nine.vercel.app/**
+
+
 ## 🛠️ Tech Stack
 
 - **Frontend**: Next.js 16, React, TypeScript

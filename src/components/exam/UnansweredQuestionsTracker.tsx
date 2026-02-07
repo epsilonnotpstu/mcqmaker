@@ -20,7 +20,7 @@ export default function UnansweredQuestionsTracker({
     .filter((q): q is number => q !== null);
 
   // Show only in last 5 minutes (300 seconds)
-  const showTracker = timeLeft <= 300 && unansweredQuestions.length > 0;
+  const showTracker = timeLeft <= 60 && unansweredQuestions.length > 0;
 
   if (!showTracker) return null;
 

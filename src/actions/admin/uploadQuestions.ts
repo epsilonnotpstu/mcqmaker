@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import { parseQuestionsFromJS } from "@/lib/parseQuestions";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 export async function uploadQuestionsAction(formData: FormData) {
   const examIdRaw = formData.get("examId");
@@ -45,6 +46,11 @@ export async function uploadQuestionsAction(formData: FormData) {
       data: { totalQuestions: parsed.length },
     }),
   ]);
+
+  // Revalidate homepage to show updated exam info
+  revalidatePath('/');
+  revalidatePath('/enter');
+  revalidatePath('/admin/dashboard');
 
   redirect(`/admin/dashboard/addquestion?uploaded=${parsed.length}&examId=${examId}`);
 }

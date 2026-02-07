@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 const SettingsSchema = z.object({
   examId: z.preprocess((v) => (v === undefined || v === null || v === "" ? undefined : Number(v)), z.number().int().positive()).optional(),
@@ -79,6 +80,11 @@ export async function updateExamSettingsAction(formData: FormData) {
       data: { isActive: false },
     });
   }
+
+  // Revalidate homepage to show updated exam info
+  revalidatePath('/');
+  revalidatePath('/enter');
+  revalidatePath('/admin/dashboard');
 
   redirect(`/admin/dashboard/addquestion?updated=1&examId=${targetId}`);
 }

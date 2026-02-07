@@ -6,6 +6,9 @@ import { FloatingExamInfo } from '@/components/FloatingExamInfo';
 import { BookOpen, Clock, Award, CheckCircle, Users, TrendingUp, Play, Settings, Trophy, AlertCircle, Calendar, Timer } from 'lucide-react';
 import { prisma } from '@/lib/db';
 
+// Force dynamic rendering to always fetch fresh exam data
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   let activeExam: { 
     id: number; 
